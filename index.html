@@ -177,7 +177,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-10-25 13:50:42 / 修改时间：15:14:08" itemprop="dateCreated datePublished" datetime="2024-10-25T13:50:42+08:00">2024-10-25</time>
+              <time title="创建时间：2024-10-25 13:50:42 / 修改时间：15:18:00" itemprop="dateCreated datePublished" datetime="2024-10-25T13:50:42+08:00">2024-10-25</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -339,7 +339,7 @@ class="math inline">\(q\)</span>刚好与<span
 class="math inline">\(k_i\)</span>匹配的时候，分配给<span
 class="math inline">\(k_i\)</span>的权重是0，那加权平均的时候就会跳过这一个kv对。而后者在这个点上行为未定义（1/0），也不合适。虽然对于科学计算而言1/0会给你返回一个infinity，对应一个浮点数，那么计算加权平均的时候就会是inf/inf，查询的结果就是这个匹配的kv对，但是这本身是不合理的。</p>
 <p>这里大家常用的方法其实是<span class="math display">\[e^{-L}\]</span>
-<img src="image-1.png" alt="e^{-L}" />
+<img src="/images/2024-10-25-QKV奇思小记/image-1.png" alt="e^{-L}" />
 可以看到在指数函数很好的处理了这一个点的值的问题，而e指数还有一大特点就是他的导数也是他自身（这里也不太重要）</p>
 <p>那我们就定义权重分配的函数 <span class="math display">\[
 f(q) = e^{-(q - K)^2}
@@ -452,7 +452,7 @@ class="math inline">\(Q_t\)</span>和<span
 class="math inline">\(Emb_d\)</span>。这样做可以解决第一个问题。此外，不同列之间的波长不同，波长不同正弦函数对t的敏感程度不同，也能帮助找到正交基。</p>
 <p>到这里还没有结束，仔细观察这个函数，不难看出第i列的波长<span
 class="math inline">\(\lambda=2^d\pi\)</span>。如果Embedding只是有两个维度，那两个维度对位置的编码是一个首尾相接的线，形状如下图。
-<img src="image-2.png" alt="alt text" />
+<img src="/images/2024-10-25-QKV奇思小记/image-2.png" alt="alt text" />
 拓展到三维也是一样的封闭的环，这样的现象是因为正弦函数是周期性变化的。那就意味着，当Q的长度逐渐变大，就容易出现其中两行查询所对应的位置编码相同的情况，这显然不是我们希望看到的。</p>
 <h5 id="正余弦位置编码改进">正余弦位置编码改进</h5>
 <p>那也就顺理成章的能够想到，既然是因为周期变化导致的，那我让它<strong>周期足够大</strong>不就行了。这个思路是对的，核心就是拉大波长来减少周期性的问题，可以通过下面两个方式：
