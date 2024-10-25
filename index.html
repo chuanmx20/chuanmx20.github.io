@@ -175,8 +175,9 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2024-10-25 13:50:42" itemprop="dateCreated datePublished" datetime="2024-10-25T13:50:42+08:00">2024-10-25</time>
+              <time title="创建时间：2024-10-25 13:50:42 / 修改时间：15:14:08" itemprop="dateCreated datePublished" datetime="2024-10-25T13:50:42+08:00">2024-10-25</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -292,13 +293,14 @@ output</pre>
 </tr>
 </tbody>
 </table>
-<p>假设我有这么一张KV表（K是身高V是体重），我想知道一个身高为165的人体重大概是多少，应该如何在表中查？
-#### 插值（interpolation） 165落在[160,
+<p>假设我有这么一张KV表（K是身高V是体重），我想知道一个身高为165的人体重大概是多少，应该如何在表中查？</p>
+<h4 id="插值interpolation">插值（interpolation）</h4>
+<p>165落在[160,
 170]这个区间里，那么我们可以根据160和170对应的体重来估计165对应的体重。那么最简单也是最直观的想法就是，我们假设160到170之间的体重是随身高线性变化的，那么165就是160和170体重的平均值，也就是所谓的线性插值。或者我们考虑体重的变化是一条抛物线（两个可以求解出无数条抛物线，任选一条都能取出一个预测的体重值来），等等。
 插值的方法很直观，但是他有一个弊端就是，任由我们有一张超大的KV表，有这么多全局的信息，却只取了两个点，有点太浪费了</p>
-<p>那有没有一种更好的方法，能够利用KV表的所有信息呢？ ####
-回归（regression）
-基于先验信息（就是这一张表），我们可以挑选一个映射f，这个f负责把身高映射到体重：
+<p>那有没有一种更好的方法，能够利用KV表的所有信息呢？</p>
+<h4 id="回归regression">回归（regression）</h4>
+<p>基于先验信息（就是这一张表），我们可以挑选一个映射f，这个f负责把身高映射到体重：
 <span class="math display">\[f(身高)=\hat{体重}\]</span></p>
 <p>最简单的就是线性回归了，即<span
 class="math inline">\(y=ax+b+\epsilon\)</span>，其中： <span
