@@ -30,7 +30,7 @@
 <meta property="og:image" content="https://www.chuanmx.cc/images/2024-11-09-Policy-Gradient%E7%AC%94%E8%AE%B0/Picture1.png">
 <meta property="og:image" content="https://www.chuanmx.cc/images/2024-11-09-Policy-Gradient%E7%AC%94%E8%AE%B0/Picture1-1.png">
 <meta property="article:published_time" content="2024-11-08T17:29:12.000Z">
-<meta property="article:modified_time" content="2024-11-08T17:39:16.745Z">
+<meta property="article:modified_time" content="2024-11-08T17:51:20.963Z">
 <meta property="article:author" content="chuanmx">
 <meta property="article:tag" content="深度学习">
 <meta property="article:tag" content="强化学习">
@@ -189,7 +189,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-11-09 01:29:12 / 修改时间：01:39:16" itemprop="dateCreated datePublished" datetime="2024-11-09T01:29:12+08:00">2024-11-09</time>
+              <time title="创建时间：2024-11-09 01:29:12 / 修改时间：01:51:20" itemprop="dateCreated datePublished" datetime="2024-11-09T01:29:12+08:00">2024-11-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -224,7 +224,8 @@
 </ol>
 <p>对于每一个结局，我们都可以得到一个回报<script type="math/tex">R=\sum_{t=0}^{\infty}\gamma^t r_t</script>，其中<script type="math/tex">\gamma</script>是折扣因子(discount factor)，用于衡量未来奖励的重要性。<br>而整个强化学习的目标就是找到一个策略<script type="math/tex">\pi</script>，使得期望回报最大。</p>
 <script type="math/tex; mode=display">
-\pi^* = \arg\max_{\pi}E[R|\pi]</script><h3 id="Tabular-Q-Learning"><a href="#Tabular-Q-Learning" class="headerlink" title="Tabular Q-Learning"></a>Tabular Q-Learning</h3><p>从当前的状态<script type="math/tex">s</script>出发，我们如何选择最优的动作<script type="math/tex">a</script>，使得未来的回报最大呢？最容易想到的是贪心算法，即每一步都选择能够获得最大回报的动作。</p>
+\pi^* = \arg\max_{\pi}E[R|\pi]</script><span id="more"></span>
+<h3 id="Tabular-Q-Learning"><a href="#Tabular-Q-Learning" class="headerlink" title="Tabular Q-Learning"></a>Tabular Q-Learning</h3><p>从当前的状态<script type="math/tex">s</script>出发，我们如何选择最优的动作<script type="math/tex">a</script>，使得未来的回报最大呢？最容易想到的是贪心算法，即每一步都选择能够获得最大回报的动作。</p>
 <p>贪心算法的问题在于，我们可能会陷入局部最优，而无法找到全局最优。为了解决这个问题，我们需要衡量每一个动作的价值，这个价值是一个综合考虑了当前动作的回报和未来动作的价值的一个值，那么我们就可以在每一步选择价值最大的动作，而不是直接选择回报最大的动作。</p>
 <p>所以我们定义一个Q值，表示在状态<script type="math/tex">s</script>下，选择动作<script type="math/tex">a</script>的价值，即<script type="math/tex">Q(s,a)</script>。假设action space和state space都是有限的，那么我们可以用一个表格来存储Q值，表第$s$行第$a$列的值就是<script type="math/tex">Q(s,a)</script>，表示在状态$s$下选择动作<script type="math/tex">a</script>的价值。</p>
 <p>有了这么一张表，我们只需要在每一个状态下选择最大的Q值对应的动作，就能得到一个全局最优策略。注意，这里指的是全局最优，而不是局部最优，因为我们的Q值是全局的，而不是局部的。获得这样一张表的方法就是Q-Learning，即学习每一个<script type="math/tex">(s,a)</script>对的Q值，使得最终的Q值表能够收敛到全局最优。</p>
