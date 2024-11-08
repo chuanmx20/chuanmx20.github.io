@@ -20,17 +20,16 @@
     var CONFIG = {"hostname":"www.chuanmx.cc","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="思从何来我尝试理解RLHF（Reinforcement Learning with Human Feedback），意识到我认知中的Q-Learning与当前RL有很大的出入，于是我学习了一下一些Deep Q-Learning的知识，记录一下学习的过程。 我认知中的RLRL最通俗而最通用的解释就是这么一个模型：  整个系统中有Agent、Envronment两个部分 通过观测Environment">
+  <meta name="description" content="思从何来 我尝试理解RLHF（Reinforcement Learning with Human Feedback），意识到我认知中的Q-Learning与当前RL有很大的出入，于是我学习了一下一些Deep Q-Learning的知识，记录一下学习的过程。 我认知中的RL RL最通俗而最通用的解释就是这么一个模型： 1. 整个系统中有Agent、Envronment两个部分 2. 通过观测Envi">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Policy Gradient笔记">
 <meta property="og:url" content="https://www.chuanmx.cc/2024/11/09/Policy-Gradient%E7%AC%94%E8%AE%B0/index.html">
 <meta property="og:site_name" content="chuanmx的个人博客">
-<meta property="og:description" content="思从何来我尝试理解RLHF（Reinforcement Learning with Human Feedback），意识到我认知中的Q-Learning与当前RL有很大的出入，于是我学习了一下一些Deep Q-Learning的知识，记录一下学习的过程。 我认知中的RLRL最通俗而最通用的解释就是这么一个模型：  整个系统中有Agent、Envronment两个部分 通过观测Environment">
+<meta property="og:description" content="思从何来 我尝试理解RLHF（Reinforcement Learning with Human Feedback），意识到我认知中的Q-Learning与当前RL有很大的出入，于是我学习了一下一些Deep Q-Learning的知识，记录一下学习的过程。 我认知中的RL RL最通俗而最通用的解释就是这么一个模型： 1. 整个系统中有Agent、Envronment两个部分 2. 通过观测Envi">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://www.chuanmx.cc/images/2024-11-09-Policy-Gradient%E7%AC%94%E8%AE%B0/Picture1.png">
-<meta property="og:image" content="https://www.chuanmx.cc/images/2024-11-09-Policy-Gradient%E7%AC%94%E8%AE%B0/Picture1-1.png">
 <meta property="article:published_time" content="2024-11-08T17:29:12.000Z">
-<meta property="article:modified_time" content="2024-11-08T17:32:38.108Z">
+<meta property="article:modified_time" content="2024-11-08T17:34:46.101Z">
 <meta property="article:author" content="chuanmx">
 <meta property="article:tag" content="深度学习">
 <meta property="article:tag" content="强化学习">
@@ -189,7 +188,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-11-09 01:29:12 / 修改时间：01:32:38" itemprop="dateCreated datePublished" datetime="2024-11-09T01:29:12+08:00">2024-11-09</time>
+              <time title="创建时间：2024-11-09 01:29:12 / 修改时间：01:34:46" itemprop="dateCreated datePublished" datetime="2024-11-09T01:29:12+08:00">2024-11-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -212,108 +211,273 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="思从何来"><a href="#思从何来" class="headerlink" title="思从何来"></a>思从何来</h2><p>我尝试理解RLHF（Reinforcement Learning with Human Feedback），意识到我认知中的Q-Learning与当前RL有很大的出入，于是我学习了一下一些Deep Q-Learning的知识，记录一下学习的过程。</p>
-<h2 id="我认知中的RL"><a href="#我认知中的RL" class="headerlink" title="我认知中的RL"></a>我认知中的RL</h2><p>RL最通俗而最通用的解释就是这么一个模型：</p>
-<ol>
-<li>整个系统中有Agent、Envronment两个部分</li>
-<li>通过观测Environment得到状态<script type="math/tex">s_t</script></li>
-<li>Agent根据<script type="math/tex">s_t</script>选择最合适的动作<script type="math/tex">a_t</script></li>
-<li>动作<script type="math/tex">a_t</script>作用于Environment，得到奖励<script type="math/tex">r_{t+1}</script>和新的状态<script type="math/tex">s_{t+1}</script></li>
-<li>Agent根据<script type="math/tex">r_{t+1}</script>和<script type="math/tex">s_{t+1}</script>更新自己的策略</li>
-<li>重复2-5步骤直至结束</li>
-</ol>
-<p>对于每一个结局，我们都可以得到一个回报<script type="math/tex">R=\sum_{t=0}^{\infty}\gamma^t r_t</script>，其中<script type="math/tex">\gamma</script>是折扣因子(discount factor)，用于衡量未来奖励的重要性。<br>而整个强化学习的目标就是找到一个策略<script type="math/tex">\pi</script>，使得期望回报最大。</p>
-<script type="math/tex; mode=display">
-\pi^* = \arg\max_{\pi}E[R|\pi]</script><h3 id="Tabular-Q-Learning"><a href="#Tabular-Q-Learning" class="headerlink" title="Tabular Q-Learning"></a>Tabular Q-Learning</h3><p>从当前的状态<script type="math/tex">s</script>出发，我们如何选择最优的动作<script type="math/tex">a</script>，使得未来的回报最大呢？最容易想到的是贪心算法，即每一步都选择能够获得最大回报的动作。</p>
+        <h2 id="思从何来">思从何来</h2>
+<p>我尝试理解RLHF（Reinforcement Learning with Human
+Feedback），意识到我认知中的Q-Learning与当前RL有很大的出入，于是我学习了一下一些Deep
+Q-Learning的知识，记录一下学习的过程。</p>
+<h2 id="我认知中的rl">我认知中的RL</h2>
+<p>RL最通俗而最通用的解释就是这么一个模型： 1.
+整个系统中有Agent、Envronment两个部分 2.
+通过观测Environment得到状态<span class="math display">\[s_t\]</span> 3.
+Agent根据<span class="math display">\[s_t\]</span>选择最合适的动作<span
+class="math display">\[a_t\]</span> 4. 动作<span
+class="math display">\[a_t\]</span>作用于Environment，得到奖励<span
+class="math display">\[r_{t+1}\]</span>和新的状态<span
+class="math display">\[s_{t+1}\]</span> 5. Agent根据<span
+class="math display">\[r_{t+1}\]</span>和<span
+class="math display">\[s_{t+1}\]</span>更新自己的策略 6.
+重复2-5步骤直至结束</p>
+<p>对于每一个结局，我们都可以得到一个回报<span
+class="math display">\[R=\sum_{t=0}^{\infty}\gamma^t
+r_t\]</span>，其中<span
+class="math display">\[\gamma\]</span>是折扣因子(discount
+factor)，用于衡量未来奖励的重要性。
+而整个强化学习的目标就是找到一个策略<span
+class="math display">\[\pi\]</span>，使得期望回报最大。</p>
+<p><span class="math display">\[
+\pi^* = \arg\max_{\pi}E[R|\pi]
+\]</span></p>
+<h3 id="tabular-q-learning">Tabular Q-Learning</h3>
+<p>从当前的状态<span
+class="math display">\[s\]</span>出发，我们如何选择最优的动作<span
+class="math display">\[a\]</span>，使得未来的回报最大呢？最容易想到的是贪心算法，即每一步都选择能够获得最大回报的动作。</p>
 <p>贪心算法的问题在于，我们可能会陷入局部最优，而无法找到全局最优。为了解决这个问题，我们需要衡量每一个动作的价值，这个价值是一个综合考虑了当前动作的回报和未来动作的价值的一个值，那么我们就可以在每一步选择价值最大的动作，而不是直接选择回报最大的动作。</p>
-<p>所以我们定义一个Q值，表示在状态<script type="math/tex">s</script>下，选择动作<script type="math/tex">a</script>的价值，即<script type="math/tex">Q(s,a)</script>。假设action space和state space都是有限的，那么我们可以用一个表格来存储Q值，表第$s$行第$a$列的值就是<script type="math/tex">Q(s,a)</script>，表示在状态$s$下选择动作<script type="math/tex">a</script>的价值。</p>
-<p>有了这么一张表，我们只需要在每一个状态下选择最大的Q值对应的动作，就能得到一个全局最优策略。注意，这里指的是全局最优，而不是局部最优，因为我们的Q值是全局的，而不是局部的。获得这样一张表的方法就是Q-Learning，即学习每一个<script type="math/tex">(s,a)</script>对的Q值，使得最终的Q值表能够收敛到全局最优。</p>
-<p>Q-Learning的更新公式如下：</p>
-<script type="math/tex; mode=display">
-Q^{k+1}(s_t,a_t) = Q^k(s_t,a_t) + \alpha(r_{t+1}+\gamma\max_{a}Q^k(s_{t+1},a)-Q^k(s_t,a_t))</script><p>其中$\alpha$是学习率，用于控制每次更新的幅度，$Q^k$表示第$k$次迭代的Q值表。可以这样理解这个更新公式：<script type="math/tex">Q^{k+1}</script>是<script type="math/tex">Q^k</script>的一个修正，修正的幅度由<script type="math/tex">r_{t+1}+\gamma\max_{a}Q^k(s_{t+1},a)-Q^k(s_t,a_t)</script>决定。</p>
-<p>更新的增量的几个项分别表示：</p>
-<ol>
-<li><script type="math/tex">r_{t+1}</script>表示当前状态$s_t$选择动作<script type="math/tex">a_t</script>后得到的奖励</li>
-<li><script type="math/tex">\gamma</script>乘的这一项表示在下一个状态<script type="math/tex">s_{t+1}</script>下选择最优动作的Q值。也就是对$s_t$选择$a_t$后，接下来的最优策略的价值的一个估计</li>
-<li><script type="math/tex">Q^k(s_t,a_t)</script>表示当前状态<script type="math/tex">s_t</script>选择动作$a_t$的Q值，也就是当前策略的价值</li>
-<li>2-3项的差值表示当前策略和最优策略的差距，代表走这个动作能够获得的额外价值</li>
-</ol>
-<p>与Superveised Learning不同，RL的目标是最大化回报，而不是最小化损失。此外RL的训练可以理解为遍历整个状态空间，而不是遍历整个数据集。这也是为什么RL的训练速度会比SL慢的原因。它停止的条件是策略收敛，也就是<script type="math/tex">|Q^{k+1} - Q^k| = \epsilon</script>，当<script type="math/tex">\epsilon</script>足够小时，我们就可以认为Q值表已经收敛。但是RL并不能保证收敛，因为Q值表的更新是基于贪心策略的，而贪心策略可能会陷入局部最优。<br>这一优化过程可以等价于最小化增量的平方和：</p>
-<script type="math/tex; mode=display">
-\min_{Q} \sum_{t=0}^{\infty}(Q^{k+1}(s_t,a_t) - Q^k(s_t,a_t))^2</script><p>这就是我认知中的Q-Learning，但是这个Q-Learning有一个很大的问题，那就是它只能处理离散的动作空间，而不能处理连续的动作空间。而且，它最优化的终点并不是Q值表保证每个<script type="math/tex">(s,a)</script>对的Q值都能代表最优策略，而是Q值表的收敛。</p>
-<h2 id="Deep-Q-Learning"><a href="#Deep-Q-Learning" class="headerlink" title="Deep Q-Learning"></a>Deep Q-Learning</h2><p>刚刚提到的TQL，有很大的局限性，那就是只能处理离散的动作空间。而这一问题的根源在于TQL的核心是Q table，而Q table是一个离散的表格，所以只能处理离散的动作空间。那如何能对连续空间的<script type="math/tex">(s,a)</script>对进行Q值的估计呢？这就是DQL的出发点。</p>
-<h3 id="Parametrize-Q-function"><a href="#Parametrize-Q-function" class="headerlink" title="Parametrize Q function"></a>Parametrize Q function</h3><p>DQL的核心思想是，用一个函数来估计Q值，而不是用一个表格。我们用$\theta$来表示这个函数的参数，那么对于任意的<script type="math/tex">(s,a)</script>对，我们可以用<script type="math/tex">Q(s,a;\theta) \equiv Q_{\theta}(s,a)</script>来计算Q值。</p>
-<h3 id="DQN（Deep-Q-learning-Network）"><a href="#DQN（Deep-Q-learning-Network）" class="headerlink" title="DQN（Deep Q-learning Network）"></a>DQN（Deep Q-learning Network）</h3><p><img src="/images/2024-11-09-Policy-Gradient笔记/Picture1.png" alt="PingPong Game"><br>假设有这样一款游戏，你的Agent需要操控右边的板子，选择向上还是向下移动，使得板子可以接住小球，而左边的板子是你的对手，你的目标是尽可能多的接住小球。这个游戏的状态空间是非常大，因为两块板子和小球的位置都是连续的，而动作空间是离散的，因为只有向上和向下两个动作。</p>
-<p>对于这么大的状态空间而言，学习这样的一个Q table是不现实的。我们可以设计这么一个网络来计算Q值，从而选择向上还是向下。我们把状态建模成这么几个特征：</p>
-<ol>
-<li>小球的位置<script type="math/tex">x_{ball}</script> <script type="math/tex">y_{ball}</script></li>
-<li>对手板子的位置<script type="math/tex">y_{opponent}</script></li>
-<li>你的板子的位置<script type="math/tex">y_{agent}</script></li>
-<li>小球的速度<script type="math/tex">v^x_{ball}</script> <script type="math/tex">v^y_{ball}</script></li>
-</ol>
-<p>简单设计这样一个网络<br><img src="/images/2024-11-09-Policy-Gradient笔记/Picture1-1.png" alt="DQL Network"><br>这个Q函数得到的结果是一个0-1之间的sigmoid值，表示向上（或者向下，这里只有两个动作，所以是相对的）的概率。通过优化这个网络的参数<script type="math/tex">\theta</script>，我们就可以得到一个最优的Q函数，使得在任意的状态下，选择最大的Q值对应的动作，就能得到一个全局最优的策略。有了这个网络，接下来要讨论的是，如何训练这个网络。</p>
-<h3 id="Policy-Gradient"><a href="#Policy-Gradient" class="headerlink" title="Policy Gradient"></a>Policy Gradient</h3><p>优化这个<script type="math/tex">\theta</script> function的核心依然是，使得这个<script type="math/tex">\theta</script> function的期望回报最大，这里就提到了两个东西：</p>
-<ol>
-<li>回报</li>
-<li>期望</li>
-</ol>
-<p>回报很容易理解，我们做如下定义，从状态$s_0$开始，经过一系列的动作<script type="math/tex">a_0,a_1,...,a_n</script>游戏结束，对每一步<script type="math/tex">a_i</script>，我们都会得到一个奖励<script type="math/tex">r_i</script>，将agent与环境交互的这一整个过程称为一条轨迹(trajectory)，用符号<script type="math/tex">\tau</script>表示轨迹。那么这一条轨迹的回报就是</p>
-<script type="math/tex; mode=display">
-R(\tau) = \sum_{t=0}^{n}\gamma^t r_t</script><p>其中<script type="math/tex">\gamma</script>是折扣因子，是一个超参数，用于衡量未来奖励的重要性。而参数<script type="math/tex">\theta</script>的期望回报可以用经验分布的期望来计算，使用$\theta$的策略$\pi_{\theta}$采样一系列的轨迹，然后计算这些轨迹的回报的期望值，即</p>
-<script type="math/tex; mode=display">
-E[R(\tau)] = \sum_{\tau}P_{\theta}(\tau)R(\tau)</script><p>其中<script type="math/tex">P(\tau)</script>是轨迹的概率分布，是从$\theta$的策略<script type="math/tex">\pi_{\theta}</script>采样得到的轨迹的分布，也就是一系列<script type="math/tex">(s,a)</script>对概率的乘积，表示从$s_0$开始，经过一系列的动作$a_0,a_1,…,a_n$游戏结束的概率，即</p>
-<script type="math/tex; mode=display">
-P(\tau) = \prod_{t=0}^{n}P_{\theta}(a_t|s_t)</script><p>假设采样次数足够多，那么我们可以认为<script type="math/tex">\theta</script>的策略<script type="math/tex">\pi_\theta</script>为从<script type="math/tex">s_0</script>出发到游戏结束的轨迹的分布(<script type="math/tex">\tau\sim\pi_\theta</script>)。期望回报也可以写出轨迹回报的积分形式</p>
-<script type="math/tex; mode=display">
-E_{\tau\sim \pi_{\theta}}[R(\tau)] = \int P_{\theta}(\tau)R(\tau)d\tau</script><p>到这里，整个训练的目标就十分清晰了，我们的目标是最大化期望回报，即</p>
-<script type="math/tex; mode=display">
-\theta^* = \arg\max_{\theta}E_{\tau\sim P_{\theta}(\tau)}[R(\tau)]</script><p>原理上理解了，而这个期望可以看作是一个关于<script type="math/tex">\theta</script>的函数。找到让这个函数最大的<script type="math/tex">\theta</script>，就是我们的目标。如何实现这一目标呢，（你想的对，牛顿法）我们可以用梯度上升法来实现这一目标。同时我们可以注意到，期望回报的两项中，<script type="math/tex">P_{\theta}(\tau)</script>是关于<script type="math/tex">\theta</script>的函数，而<script type="math/tex">R(\tau)</script>的计算是不依赖于<script type="math/tex">\theta</script>的，所以我们可以将期望回报的梯度进一步展开并化简</p>
-<script type="math/tex; mode=display">
+<p>所以我们定义一个Q值，表示在状态<span
+class="math display">\[s\]</span>下，选择动作<span
+class="math display">\[a\]</span>的价值，即<span
+class="math display">\[Q(s,a)\]</span>。假设action space和state
+space都是有限的，那么我们可以用一个表格来存储Q值，表第<span
+class="math inline">\(s\)</span>行第<span
+class="math inline">\(a\)</span>列的值就是<span
+class="math display">\[Q(s,a)\]</span>，表示在状态<span
+class="math inline">\(s\)</span>下选择动作<span
+class="math display">\[a\]</span>的价值。</p>
+<p>有了这么一张表，我们只需要在每一个状态下选择最大的Q值对应的动作，就能得到一个全局最优策略。注意，这里指的是全局最优，而不是局部最优，因为我们的Q值是全局的，而不是局部的。获得这样一张表的方法就是Q-Learning，即学习每一个<span
+class="math display">\[(s,a)\]</span>对的Q值，使得最终的Q值表能够收敛到全局最优。</p>
+<p>Q-Learning的更新公式如下： <span class="math display">\[
+Q^{k+1}(s_t,a_t) = Q^k(s_t,a_t) +
+\alpha(r_{t+1}+\gamma\max_{a}Q^k(s_{t+1},a)-Q^k(s_t,a_t))
+\]</span> 其中<span
+class="math inline">\(\alpha\)</span>是学习率，用于控制每次更新的幅度，<span
+class="math inline">\(Q^k\)</span>表示第<span
+class="math inline">\(k\)</span>次迭代的Q值表。可以这样理解这个更新公式：<span
+class="math display">\[Q^{k+1}\]</span>是<span
+class="math display">\[Q^k\]</span>的一个修正，修正的幅度由<span
+class="math display">\[r_{t+1}+\gamma\max_{a}Q^k(s_{t+1},a)-Q^k(s_t,a_t)\]</span>决定。</p>
+<p>更新的增量的几个项分别表示： 1. <span
+class="math display">\[r_{t+1}\]</span>表示当前状态<span
+class="math inline">\(s_t\)</span>选择动作<span
+class="math display">\[a_t\]</span>后得到的奖励 2. <span
+class="math display">\[\gamma\]</span>乘的这一项表示在下一个状态<span
+class="math display">\[s_{t+1}\]</span>下选择最优动作的Q值。也就是对<span
+class="math inline">\(s_t\)</span>选择<span
+class="math inline">\(a_t\)</span>后，接下来的最优策略的价值的一个估计
+3. <span class="math display">\[Q^k(s_t,a_t)\]</span>表示当前状态<span
+class="math display">\[s_t\]</span>选择动作<span
+class="math inline">\(a_t\)</span>的Q值，也就是当前策略的价值 4.
+2-3项的差值表示当前策略和最优策略的差距，代表走这个动作能够获得的额外价值</p>
+<p>与Superveised
+Learning不同，RL的目标是最大化回报，而不是最小化损失。此外RL的训练可以理解为遍历整个状态空间，而不是遍历整个数据集。这也是为什么RL的训练速度会比SL慢的原因。它停止的条件是策略收敛，也就是<span
+class="math display">\[|Q^{k+1} - Q^k| = \epsilon\]</span>，当<span
+class="math display">\[\epsilon\]</span>足够小时，我们就可以认为Q值表已经收敛。但是RL并不能保证收敛，因为Q值表的更新是基于贪心策略的，而贪心策略可能会陷入局部最优。
+这一优化过程可以等价于最小化增量的平方和： <span class="math display">\[
+\min_{Q} \sum_{t=0}^{\infty}(Q^{k+1}(s_t,a_t) - Q^k(s_t,a_t))^2
+\]</span></p>
+<p>这就是我认知中的Q-Learning，但是这个Q-Learning有一个很大的问题，那就是它只能处理离散的动作空间，而不能处理连续的动作空间。而且，它最优化的终点并不是Q值表保证每个<span
+class="math display">\[(s,a)\]</span>对的Q值都能代表最优策略，而是Q值表的收敛。</p>
+<h2 id="deep-q-learning">Deep Q-Learning</h2>
+<p>刚刚提到的TQL，有很大的局限性，那就是只能处理离散的动作空间。而这一问题的根源在于TQL的核心是Q
+table，而Q
+table是一个离散的表格，所以只能处理离散的动作空间。那如何能对连续空间的<span
+class="math display">\[(s,a)\]</span>对进行Q值的估计呢？这就是DQL的出发点。</p>
+<h3 id="parametrize-q-function">Parametrize Q function</h3>
+<p>DQL的核心思想是，用一个函数来估计Q值，而不是用一个表格。我们用<span
+class="math inline">\(\theta\)</span>来表示这个函数的参数，那么对于任意的<span
+class="math display">\[(s,a)\]</span>对，我们可以用<span
+class="math display">\[Q(s,a;\theta) \equiv
+Q_{\theta}(s,a)\]</span>来计算Q值。</p>
+<h3 id="dqndeep-q-learning-network">DQN（Deep Q-learning Network）</h3>
+<p><img src="/images/2024-11-09-Policy-Gradient笔记/Picture1.png"
+alt="PingPong Game" />
+假设有这样一款游戏，你的Agent需要操控右边的板子，选择向上还是向下移动，使得板子可以接住小球，而左边的板子是你的对手，你的目标是尽可能多的接住小球。这个游戏的状态空间是非常大，因为两块板子和小球的位置都是连续的，而动作空间是离散的，因为只有向上和向下两个动作。</p>
+<p>对于这么大的状态空间而言，学习这样的一个Q
+table是不现实的。我们可以设计这么一个网络来计算Q值，从而选择向上还是向下。我们把状态建模成这么几个特征：
+1. 小球的位置<span class="math display">\[x_{ball}\]</span> <span
+class="math display">\[y_{ball}\]</span> 2. 对手板子的位置<span
+class="math display">\[y_{opponent}\]</span> 3. 你的板子的位置<span
+class="math display">\[y_{agent}\]</span> 4. 小球的速度<span
+class="math display">\[v^x_{ball}\]</span> <span
+class="math display">\[v^y_{ball}\]</span></p>
+<p>简单设计这样一个网络 <img
+src="/images/2024-11-09-Policy-Gradient笔记/Picture1-1.png"
+alt="DQL Network" />
+这个Q函数得到的结果是一个0-1之间的sigmoid值，表示向上（或者向下，这里只有两个动作，所以是相对的）的概率。通过优化这个网络的参数<span
+class="math display">\[\theta\]</span>，我们就可以得到一个最优的Q函数，使得在任意的状态下，选择最大的Q值对应的动作，就能得到一个全局最优的策略。有了这个网络，接下来要讨论的是，如何训练这个网络。</p>
+<h3 id="policy-gradient">Policy Gradient</h3>
+<p>优化这个<span class="math display">\[\theta\]</span>
+function的核心依然是，使得这个<span
+class="math display">\[\theta\]</span>
+function的期望回报最大，这里就提到了两个东西： 1. 回报 2. 期望</p>
+<p>回报很容易理解，我们做如下定义，从状态<span
+class="math inline">\(s_0\)</span>开始，经过一系列的动作<span
+class="math display">\[a_0,a_1,...,a_n\]</span>游戏结束，对每一步<span
+class="math display">\[a_i\]</span>，我们都会得到一个奖励<span
+class="math display">\[r_i\]</span>，将agent与环境交互的这一整个过程称为一条轨迹(trajectory)，用符号<span
+class="math display">\[\tau\]</span>表示轨迹。那么这一条轨迹的回报就是
+<span class="math display">\[
+R(\tau) = \sum_{t=0}^{n}\gamma^t r_t
+\]</span> 其中<span
+class="math display">\[\gamma\]</span>是折扣因子，是一个超参数，用于衡量未来奖励的重要性。而参数<span
+class="math display">\[\theta\]</span>的期望回报可以用经验分布的期望来计算，使用<span
+class="math inline">\(\theta\)</span>的策略<span
+class="math inline">\(\pi_{\theta}\)</span>采样一系列的轨迹，然后计算这些轨迹的回报的期望值，即
+<span class="math display">\[
+E[R(\tau)] = \sum_{\tau}P_{\theta}(\tau)R(\tau)
+\]</span> 其中<span
+class="math display">\[P(\tau)\]</span>是轨迹的概率分布，是从<span
+class="math inline">\(\theta\)</span>的策略<span
+class="math display">\[\pi_{\theta}\]</span>采样得到的轨迹的分布，也就是一系列<span
+class="math display">\[(s,a)\]</span>对概率的乘积，表示从<span
+class="math inline">\(s_0\)</span>开始，经过一系列的动作<span
+class="math inline">\(a_0,a_1,...,a_n\)</span>游戏结束的概率，即 <span
+class="math display">\[
+P(\tau) = \prod_{t=0}^{n}P_{\theta}(a_t|s_t)
+\]</span></p>
+<p>假设采样次数足够多，那么我们可以认为<span
+class="math display">\[\theta\]</span>的策略<span
+class="math display">\[\pi_\theta\]</span>为从<span
+class="math display">\[s_0\]</span>出发到游戏结束的轨迹的分布(<span
+class="math display">\[\tau\sim\pi_\theta\]</span>)。期望回报也可以写出轨迹回报的积分形式
+<span class="math display">\[
+E_{\tau\sim \pi_{\theta}}[R(\tau)] = \int P_{\theta}(\tau)R(\tau)d\tau
+\]</span>
+到这里，整个训练的目标就十分清晰了，我们的目标是最大化期望回报，即 <span
+class="math display">\[
+\theta^* = \arg\max_{\theta}E_{\tau\sim P_{\theta}(\tau)}[R(\tau)]
+\]</span></p>
+<p>原理上理解了，而这个期望可以看作是一个关于<span
+class="math display">\[\theta\]</span>的函数。找到让这个函数最大的<span
+class="math display">\[\theta\]</span>，就是我们的目标。如何实现这一目标呢，（你想的对，牛顿法）我们可以用梯度上升法来实现这一目标。同时我们可以注意到，期望回报的两项中，<span
+class="math display">\[P_{\theta}(\tau)\]</span>是关于<span
+class="math display">\[\theta\]</span>的函数，而<span
+class="math display">\[R(\tau)\]</span>的计算是不依赖于<span
+class="math display">\[\theta\]</span>的，所以我们可以将期望回报的梯度进一步展开并化简</p>
+<p><span class="math display">\[
 \begin{aligned}
-\nabla_{\theta}E_{\tau\sim P(\tau)}[R(\tau)] &= \nabla_{\theta}\sum_{\tau}P_{\theta}(\tau)R(\tau)\\
-&= \sum_{\tau}\nabla_{\theta}P_{\theta}(\tau)R(\tau)\\
-&= \sum_{\tau}R(\tau)\nabla_{\theta}P_{\theta}(\tau)\\
-&= \sum_{\tau}R(\tau)\nabla_{\theta}\prod_{t=0}^{n}P_{\theta}(a_t|s_t)\\
-&\propto \sum_{\tau}R(\tau)\nabla_{\theta}\sum_{t=0}^{n}\log P_{\theta}(a_t|s_t)
-\end{aligned}</script><p>在展开的最后一步，我把对<script type="math/tex">\tau</script>中每次状态转移的概率的求导展开成了对它的对数求导，这样一方面避免了累乘导致的数值消失，另一方面我们也可以对么一个<script type="math/tex">\tau</script>中的每一个<script type="math/tex">(s,a)</script>对的logit求导，这样就可以对每一个<script type="math/tex">(s,a)</script>对的概率进行更新。</p>
-<p>根据该梯度公式，我们可以按照如下步骤进行训练：</p>
-<ol>
-<li>初始化<script type="math/tex">\theta</script></li>
-<li>采样一系列的轨迹<script type="math/tex">\pi_{\theta}</script></li>
-<li>遍历这些轨迹，对每条轨迹<script type="math/tex">\tau \in \pi_{\theta}</script>，计算$R(\tau)$</li>
-<li>对<script type="math/tex">\tau</script>中对时间步<script type="math/tex">t = 0,1,...,n</script>，做如下更新<ol>
-<li>计算<script type="math/tex">\nabla_{\theta}\log P_{\theta}(a_t|s_t)</script></li>
-<li>更新<script type="math/tex">\theta = \theta + \alpha R(\tau)\nabla_{\theta}\log P_{\theta}(a_t|s_t)</script></li>
-</ol>
-</li>
-<li>重复2步骤直至收敛</li>
-</ol>
-<p>这就是Policy Gradient的训练过程，这个过程的核心是计算期望回报的梯度，然后根据梯度更新参数<script type="math/tex">\theta</script>。梯度计算中，只有每一个<script type="math/tex">(s,a)</script>对的概率是关于<script type="math/tex">\theta</script>的函数，而回报是不依赖于<script type="math/tex">\theta</script>的，最优化的迭代方向就是对于<script type="math/tex">R(\tau)</script>比较大的轨迹<script type="math/tex">\tau</script>，增大这个轨迹的概率，对于<script type="math/tex">R(\tau)</script>比较小的轨迹<script type="math/tex">\tau</script>，减小这个轨迹的概率。</p>
-<h2 id="RLHF-Reinforcement-Learning-with-Human-Feedback"><a href="#RLHF-Reinforcement-Learning-with-Human-Feedback" class="headerlink" title="RLHF: Reinforcement Learning with Human Feedback"></a>RLHF: Reinforcement Learning with Human Feedback</h2><blockquote>
+\nabla_{\theta}E_{\tau\sim P(\tau)}[R(\tau)] &amp;=
+\nabla_{\theta}\sum_{\tau}P_{\theta}(\tau)R(\tau)\\
+&amp;= \sum_{\tau}\nabla_{\theta}P_{\theta}(\tau)R(\tau)\\
+&amp;= \sum_{\tau}R(\tau)\nabla_{\theta}P_{\theta}(\tau)\\
+&amp;=
+\sum_{\tau}R(\tau)\nabla_{\theta}\prod_{t=0}^{n}P_{\theta}(a_t|s_t)\\
+&amp;\propto \sum_{\tau}R(\tau)\nabla_{\theta}\sum_{t=0}^{n}\log
+P_{\theta}(a_t|s_t)
+\end{aligned}
+\]</span> 在展开的最后一步，我把对<span
+class="math display">\[\tau\]</span>中每次状态转移的概率的求导展开成了对它的对数求导，这样一方面避免了累乘导致的数值消失，另一方面我们也可以对么一个<span
+class="math display">\[\tau\]</span>中的每一个<span
+class="math display">\[(s,a)\]</span>对的logit求导，这样就可以对每一个<span
+class="math display">\[(s,a)\]</span>对的概率进行更新。</p>
+<p>根据该梯度公式，我们可以按照如下步骤进行训练： 1. 初始化<span
+class="math display">\[\theta\]</span> 2. 采样一系列的轨迹<span
+class="math display">\[\pi_{\theta}\]</span> 3.
+遍历这些轨迹，对每条轨迹<span class="math display">\[\tau \in
+\pi_{\theta}\]</span>，计算<span class="math inline">\(R(\tau)\)</span>
+4. 对<span class="math display">\[\tau\]</span>中对时间步<span
+class="math display">\[t = 0,1,...,n\]</span>，做如下更新 1. 计算<span
+class="math display">\[\nabla_{\theta}\log P_{\theta}(a_t|s_t)\]</span>
+2. 更新<span class="math display">\[\theta = \theta + \alpha
+R(\tau)\nabla_{\theta}\log P_{\theta}(a_t|s_t)\]</span> 5.
+重复2步骤直至收敛</p>
+<p>这就是Policy
+Gradient的训练过程，这个过程的核心是计算期望回报的梯度，然后根据梯度更新参数<span
+class="math display">\[\theta\]</span>。梯度计算中，只有每一个<span
+class="math display">\[(s,a)\]</span>对的概率是关于<span
+class="math display">\[\theta\]</span>的函数，而回报是不依赖于<span
+class="math display">\[\theta\]</span>的，最优化的迭代方向就是对于<span
+class="math display">\[R(\tau)\]</span>比较大的轨迹<span
+class="math display">\[\tau\]</span>，增大这个轨迹的概率，对于<span
+class="math display">\[R(\tau)\]</span>比较小的轨迹<span
+class="math display">\[\tau\]</span>，减小这个轨迹的概率。</p>
+<h2 id="rlhf-reinforcement-learning-with-human-feedback">RLHF:
+Reinforcement Learning with Human Feedback</h2>
+<blockquote>
 <p>以下内容系个人理解，可能有误，欢迎指正</p>
 </blockquote>
-<p>观察刚刚提到的Policy Gradient的训练过程，我们可以发现，这个过程是一个无监督的过程，它只需要环境的反馈（即对每一个轨迹的评分），而不需要一个标注好的数据集。</p>
-<p>大语言模型的训练过程剧场常见的梯度下降，每次蒙上句子的下一个token，根据上下文生成每一个位置对应的下一个token的概率分布，然后用交叉熵损失函数计算这个概率分布与真实token的差距，然后更新参数。</p>
-<p>大语言模型补全句子的过程，也可以理解为不断与环境交互的过程，<script type="math/tex">s_t</script>为t时刻的上下文，<script type="math/tex">a_t</script>为对<script type="math/tex">s_t</script>采取的token，取自<script type="math/tex">a_t = \max_{a}\pi_\theta(a|s_t)</script>，其中<script type="math/tex">\pi_\theta(s_t)</script>为模型预测的所有action的一个概率分布，也就是每一个token的概率，<script type="math/tex">\tau</script>就是整个生成完成的句子。</p>
-<p>因为它的训练数据多是一些语料，比如新闻报道，维基百科，而并不是对话，受到这一数据集分布特点的影响，它补全句子倾向于让句子更加像训练数据集的概率分布，而不是对话的文本。这一点并不能满足AI assistant的需求，因为你没法和这样的补全句子的模型进行对话。因此我们需要增强这个模型的对话能力，即让他回复的句子更加符合对话的语境。同时我们也希望它的价值取向更倾向于人类对话场景的价值取向，比如礼貌，逻辑性等。那如何提高它采用出符合对话语境的句子<script type="math/tex">\tau</script>的概率呢？</p>
-<h3 id="SFT-Supervised-Fine-Tuning"><a href="#SFT-Supervised-Fine-Tuning" class="headerlink" title="SFT: Supervised Fine-Tuning"></a>SFT: Supervised Fine-Tuning</h3><p>很容易想到，我们可以收集一个对话数据集，然后让这个模型在该数据集上进一步梯度下降，使得它的输出更加符合对话的语境。这个过程就是SFT，即在一个标注好的对话数据集上进行梯度下降，使得模型的输出更加符合对话的语境。</p>
+<p>观察刚刚提到的Policy
+Gradient的训练过程，我们可以发现，这个过程是一个无监督的过程，它只需要环境的反馈（即对每一个轨迹的评分），而不需要一个标注好的数据集。</p>
+<p>大语言模型的训练过程剧场常见的梯度下降，每次蒙上句子的下一个token，根据上下文生成每一个位置对应的下一个token的概率分布，使用交叉熵损失函数计算这个概率分布与真实token的差距，然后更新参数。</p>
+<p>大语言模型补全句子的过程，也可以理解为不断与环境交互的过程，<span
+class="math display">\[s_t\]</span>为t时刻的上下文，<span
+class="math display">\[a_t\]</span>为对<span
+class="math display">\[s_t\]</span>采取的token，取自<span
+class="math display">\[a_t =
+\max_{a}\pi_\theta(a|s_t)\]</span>，其中<span
+class="math display">\[\pi_\theta(s_t)\]</span>为模型预测的所有action的一个概率分布，也就是每一个token的概率，<span
+class="math display">\[\tau\]</span>就是整个生成完成的句子。</p>
+<p>因为它的训练数据多是一些语料，比如新闻报道，维基百科，而并不是对话，受到这一数据集分布特点的影响，它补全句子倾向于让句子更加像训练数据集的概率分布，而不是对话的文本。这一点并不能满足AI
+assistant的需求，因为你没法和这样的补全句子的模型进行对话。因此我们需要增强这个模型的对话能力，即让他回复的句子更加符合对话的语境。同时我们也希望它的价值取向更倾向于人类对话场景的价值取向，比如礼貌，逻辑性等。那如何提高它采用出符合对话语境的句子<span
+class="math display">\[\tau\]</span>的概率呢？</p>
+<h3 id="sft-supervised-fine-tuning">SFT: Supervised Fine-Tuning</h3>
+<p>很容易想到，我们可以收集一个对话数据集，然后让这个模型在该数据集上进一步梯度下降，使得它的输出更加符合对话的语境。这个过程就是SFT，即在一个标注好的对话数据集上进行梯度下降，使得模型的输出更加符合对话的语境。</p>
 <p>但是想象这么一个情况：</p>
-<p>你希望它在补全“This is”的时候，说的话更像“This is a xxx”而不是“This is gonna xxx”，那标注数据中就可以让前者类型的语句更多，后者类型的语句更少。比如你的数据集里有“This is an apple”，但是没有“This is a banana”，可以预见的是，生成“This is an apple”的概率变大了，但是“This is a banana”的概率不一定会变大，甚至可能会变小。因为在计算<script type="math/tex">P_\theta(This \quad is\quad a)</script>的时候，我们假设它有三个选择（book, apple, banana），label是(0, 1, 0)，那么向损失函数（交叉熵）小的方向调整<script type="math/tex">\theta</script>就会更倾向于让它生成apple，而不是banana。但是其实我们更希望要的是(0.33, 0.33, 0.33)，因为三个选择都是合理的，而不是让它生成apple的概率更大。</p>
-<p>这与我们的目的有所出入，我们希望的是让它生成的句子更符合你的需要，即让他补全this is的时候更倾向于表达这是一个什么东西（is sth），而不是表达将会发生什么（gonna happen）。而这样训练并不能达到这一效果，只是让它生成的句子更符合微调数据的分布。</p>
-<h3 id="HF-Human-Feedback"><a href="#HF-Human-Feedback" class="headerlink" title="HF: Human Feedback"></a>HF: Human Feedback</h3><p>为了实现这一目的，就需要量化什么样的句子是“你想要的句子”，也就是对每个句子你得去评价它是不是你想要的。而这对每个句子的评价其实就是所谓的人类反馈（Human Feedback）。当然，不能够是人去盯着对每个句子都打分，所以要搞一个方法来学习人的偏好，模拟人打分，即对Human Preference的建模。</p>
-<p>这里，openai提出的方案是使用标注好的语句评分数据集来有监督地训练一个打分模型<script type="math/tex">R_\phi</script>，他对任何句子<script type="math/tex">\tau</script>都可以给出一个分数<script type="math/tex">R_\phi(\tau)</script>，这个分数表示这个句子符合你的期望的程度。那既然能够对每一个句子打分，那剩下的只需要让得分高的policy的概率变大，得分低的policy的概率变小就行了。这下就回到了我们上面提到的Policy Gradient的训练过程，使用这个打分模型<script type="math/tex">\phi</script>对预训练语言模型<script type="math/tex">\theta</script>做强化学习：</p>
-<script type="math/tex; mode=display">
+<p>你希望它在补全“This is”的时候，说的话更像“This is a xxx”而不是“This
+is gonna
+xxx”，那标注数据中就可以让前者类型的语句更多，后者类型的语句更少。比如你的数据集里有“This
+is an apple”，但是没有“This is a banana”，可以预见的是，生成“This is an
+apple”的概率变大了，但是“This is a
+banana”的概率不一定会变大，甚至可能会变小。因为在计算<span
+class="math display">\[P_\theta(This \quad is\quad
+a)\]</span>的时候，我们假设它有三个选择（book, apple,
+banana），label是(0, 1, 0)，那么向损失函数（交叉熵）小的方向调整<span
+class="math display">\[\theta\]</span>就会更倾向于让它生成apple，而不是banana。但是其实我们更希望要的是(0.33,
+0.33, 0.33)，因为三个选择都是合理的，而不是让它生成apple的概率更大。</p>
+<p>这与我们的目的有所出入，我们希望的是让它生成的句子更符合你的需要，即让他补全this
+is的时候更倾向于表达这是一个什么东西（is
+sth），而不是表达将会发生什么（gonna
+happen）。而这样训练并不能达到这一效果，只是让它生成的句子更符合微调数据的分布。</p>
+<h3 id="hf-human-feedback">HF: Human Feedback</h3>
+<p>为了实现这一目的，就需要量化什么样的句子是“你想要的句子”，也就是对每个句子你得去评价它是不是你想要的。而这对每个句子的评价其实就是所谓的人类反馈（Human
+Feedback）。当然，不能够是人去盯着对每个句子都打分，所以要搞一个方法来学习人的偏好，模拟人打分，即对Human
+Preference的建模。</p>
+<p>这里，openai提出的方案是使用标注好的语句评分数据集来有监督地训练一个打分模型<span
+class="math display">\[R_\phi\]</span>，他对任何句子<span
+class="math display">\[\tau\]</span>都可以给出一个分数<span
+class="math display">\[R_\phi(\tau)\]</span>，这个分数表示这个句子符合你的期望的程度。那既然能够对每一个句子打分，那剩下的只需要让得分高的policy的概率变大，得分低的policy的概率变小就行了。这下就回到了我们上面提到的Policy
+Gradient的训练过程，使用这个打分模型<span
+class="math display">\[\phi\]</span>对预训练语言模型<span
+class="math display">\[\theta\]</span>做强化学习： <span
+class="math display">\[
 \begin{aligned}
 \arg\max_{\theta}E_{\tau\sim P_{\theta}(\tau)}[R_\phi(\tau)]
-&= \arg\max_{\theta}\sum_{\tau \in \pi_\theta}P_{\theta}(\tau)R_\phi(\tau)\\
-\end{aligned}</script><p>通过最大化句子reward和句子的概率的乘积，我们就可以实现让打分高的句子的概率变大，打分低的句子的概率变小的目的。不同的地方仅仅在于这个<script type="math/tex">R_\phi(\tau)</script>是人类的偏好模型给出的，而不是环境的奖励。</p>
-<p>当然RLHF还要更多的工作细节，包括了使用PPO（Proximal Policy Optimization）算法来提高训练的稳定性，以及使用GPT-3作为预训练模型等等。但是核心思想就是这样，通过人类的反馈来指导模型的训练，使得模型的输出更加符合人类的期望。</p>
-<h3 id="Why-RL"><a href="#Why-RL" class="headerlink" title="Why RL?"></a>Why RL?</h3><p>解释了RLHF的微调过程，不仅还是想问，即然有对每个句子的打分，为什么不直接用监督学习呢？这里我个人猜测核心原因在于：</p>
-<ol>
-<li>首先这个东西可以动态的调整模型。在使用ChatGPT的过程中常常会出现，它提供两个句子，你选一个符合你的偏好的然后继续聊天，这一次过程甚至可以被用于对模型微调（当然openai不可能这么直接用来微调，比较用户也不一定好好选）</li>
-<li>训练这个打分模型<script type="math/tex">R_\phi</script>，可以捕获到token embedding之间的相似性，比如数据集里给“This is an apple”打了高分，那么由于apple和banana之间比较相近（embedding空间上），在训练好的<script type="math/tex">R_\phi</script>上，给“This is a banana”也会打相对高的分数，通过这个评分模型来强化学习训练<script type="math/tex">\theta</script>可以使得<script type="math/tex">\theta</script>更好的学习到人类的偏好，生成更加符合人类偏好的句子，而不是生成更符合微调数据集分布的句子。</li>
-</ol>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这篇文章主要是记录了我对Policy Gradient的理解，以及对RLHF的一些思考。从传统的TQL（Tabular Q-Learning）介绍到DQL（Deep Q-Learning），从目的出发理解DQL存在的意义。然后介绍了Policy Gradient是参数化策略<script type="math/tex">\pi_\theta</script>以<script type="math/tex">s_0</script>为起点采样得到的轨迹的期望回报的梯度，并进一步对梯度进行了展开和化简，从而解释了迭代更新策略参数的一般化方法。最后介绍了RLHF的训练原理，以及我个人对为什么要用RLHF而不是直接用SFT的见解。</p>
+&amp;= \arg\max_{\theta}\sum_{\tau \in
+\pi_\theta}P_{\theta}(\tau)R_\phi(\tau)\\
+\end{aligned}
+\]</span>
+通过最大化句子reward和句子的概率的乘积，我们就可以实现让打分高的句子的概率变大，打分低的句子的概率变小的目的。不同的地方仅仅在于这个<span
+class="math display">\[R_\phi(\tau)\]</span>是人类的偏好模型给出的，而不是环境的奖励。</p>
+<p>当然RLHF还要更多的工作细节，包括了使用PPO（Proximal Policy
+Optimization）算法来提高训练的稳定性，以及使用GPT-3作为预训练模型等等。但是核心思想就是这样，通过人类的反馈来指导模型的训练，使得模型的输出更加符合人类的期望。</p>
+<h3 id="why-rl">Why RL?</h3>
+<p>解释了RLHF的微调过程，不仅还是想问，即然有对每个句子的打分，为什么不直接用监督学习呢？这里我个人猜测核心原因在于：
+1.
+首先这个东西可以动态的调整模型。在使用ChatGPT的过程中常常会出现，它提供两个句子，你选一个符合你的偏好的然后继续聊天，这一次过程甚至可以被用于对模型微调（当然openai不可能这么直接用来微调，比较用户也不一定好好选）
+2. 训练这个打分模型<span
+class="math display">\[R_\phi\]</span>，可以捕获到token
+embedding之间的相似性，比如数据集里给“This is an
+apple”打了高分，那么由于apple和banana之间比较相近（embedding空间上），在训练好的<span
+class="math display">\[R_\phi\]</span>上，给“This is a
+banana”也会打相对高的分数，通过这个评分模型来强化学习训练<span
+class="math display">\[\theta\]</span>可以使得<span
+class="math display">\[\theta\]</span>更好的学习到人类的偏好，生成更加符合人类偏好的句子，而不是生成更符合微调数据集分布的句子。</p>
+<h2 id="总结">总结</h2>
+<p>这篇文章主要是记录了我对Policy
+Gradient的理解，以及对RLHF的一些思考。从传统的TQL（Tabular
+Q-Learning）介绍到DQL（Deep
+Q-Learning），从目的出发理解DQL存在的意义。然后介绍了Policy
+Gradient是参数化策略<span
+class="math display">\[\pi_\theta\]</span>以<span
+class="math display">\[s_0\]</span>为起点采样得到的轨迹的期望回报的梯度，并进一步对梯度进行了展开和化简，从而解释了迭代更新策略参数的一般化方法。最后介绍了RLHF的训练原理，以及我个人对为什么要用RLHF而不是直接用SFT的见解。</p>
 
     </div>
 
@@ -395,7 +559,8 @@ E_{\tau\sim \pi_{\theta}}[R(\tau)] = \int P_{\theta}(\tau)R(\tau)d\tau</script><
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E4%BB%8E%E4%BD%95%E6%9D%A5"><span class="nav-number">1.</span> <span class="nav-text">思从何来</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%91%E8%AE%A4%E7%9F%A5%E4%B8%AD%E7%9A%84RL"><span class="nav-number">2.</span> <span class="nav-text">我认知中的RL</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Tabular-Q-Learning"><span class="nav-number">2.1.</span> <span class="nav-text">Tabular Q-Learning</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Deep-Q-Learning"><span class="nav-number">3.</span> <span class="nav-text">Deep Q-Learning</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Parametrize-Q-function"><span class="nav-number">3.1.</span> <span class="nav-text">Parametrize Q function</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DQN%EF%BC%88Deep-Q-learning-Network%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">DQN（Deep Q-learning Network）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Policy-Gradient"><span class="nav-number">3.3.</span> <span class="nav-text">Policy Gradient</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RLHF-Reinforcement-Learning-with-Human-Feedback"><span class="nav-number">4.</span> <span class="nav-text">RLHF: Reinforcement Learning with Human Feedback</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SFT-Supervised-Fine-Tuning"><span class="nav-number">4.1.</span> <span class="nav-text">SFT: Supervised Fine-Tuning</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HF-Human-Feedback"><span class="nav-number">4.2.</span> <span class="nav-text">HF: Human Feedback</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Why-RL"><span class="nav-number">4.3.</span> <span class="nav-text">Why RL?</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E4%BB%8E%E4%BD%95%E6%9D%A5"><span class="nav-number">1.</span> <span class="nav-text">思从何来</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%91%E8%AE%A4%E7%9F%A5%E4%B8%AD%E7%9A%84rl"><span class="nav-number">2.</span> <span class="nav-text">我认知中的RL</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#tabular-q-learning"><span class="nav-number">2.1.</span> <span class="nav-text">Tabular Q-Learning</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#deep-q-learning"><span class="nav-number">3.</span> <span class="nav-text">Deep Q-Learning</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#parametrize-q-function"><span class="nav-number">3.1.</span> <span class="nav-text">Parametrize Q function</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dqndeep-q-learning-network"><span class="nav-number">3.2.</span> <span class="nav-text">DQN（Deep Q-learning Network）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#policy-gradient"><span class="nav-number">3.3.</span> <span class="nav-text">Policy Gradient</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#rlhf-reinforcement-learning-with-human-feedback"><span class="nav-number">4.</span> <span class="nav-text">RLHF:
+Reinforcement Learning with Human Feedback</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#sft-supervised-fine-tuning"><span class="nav-number">4.1.</span> <span class="nav-text">SFT: Supervised Fine-Tuning</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hf-human-feedback"><span class="nav-number">4.2.</span> <span class="nav-text">HF: Human Feedback</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#why-rl"><span class="nav-number">4.3.</span> <span class="nav-text">Why RL?</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
